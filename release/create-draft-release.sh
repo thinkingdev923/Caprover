@@ -3,7 +3,9 @@
 set -e
 set -o pipefail
 
-CAPROVER_VERSION="$(sed -n "s/^[[:space:]]*version: '\([^']*\)',/\1/p" src/utils/CaptainConstants.ts)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+. "$SCRIPT_DIR/release.conf"
+
 RELEASE_NOTES="$(
     awk -v version="$CAPROVER_VERSION" '
         BEGIN { heading = "## [" version "]" }
