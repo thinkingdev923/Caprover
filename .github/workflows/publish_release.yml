@@ -5,11 +5,24 @@ on:
         branches:
             - release
 
+concurrency:
+    group: production-release
+    cancel-in-progress: false
+
 jobs:
     run-pre-checks:
+        permissions:
+            contents: read
+            pull-requests: read
         runs-on: ubuntu-latest
         steps:
-            - uses: actions/checkout@v3
+            - uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+            - name: Verify release commit
+              env:
+                  GH_TOKEN: ${{ github.token }}
+              run: ./release/verify-release-commit.sh
             - uses: actions/setup-node@v5
               with:
                   node-version: 24
@@ -28,7 +41,7 @@ jobs:
               with:
                   username: ${{ secrets.REGISTRY_USERNAME }}
                   password: ${{ secrets.REGISTRY_PASSWORD }}
-            - uses: actions/checkout@v1
+            - uses: actions/checkout@v4
             - name: Build and Push Release to DockerHub
               shell: bash
               run: ./release/build-and-push.sh release
@@ -44,3 +57,17 @@ jobs:
                   GH_TOKEN: ${{ github.token }}
               shell: bash
               run: ./release/create-draft-release.sh
+    backmerge-release:
+        needs: draft-github-release
+        permissions:
+            actions: write
+            contents: write
+            pull-requests: write
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - name: Open release backmerge PR
+              env:
+                  GH_TOKEN: ${{ github.token }}
+              shell: bash
+              run: ./release/create-backmerge-pr.sh
