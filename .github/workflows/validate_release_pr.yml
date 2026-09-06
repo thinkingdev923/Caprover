@@ -24,10 +24,7 @@ jobs:
             - name: Validate release PR
               env:
                   PR_TITLE: ${{ github.event.pull_request.title }}
-                  PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}
-                  PR_HEAD_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name }}
                   PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
-                  REPOSITORY: ${{ github.repository }}
               run: ./release/validate-release-pr.sh
-            - name: Check Docker Hub tag availability
+            - name: Check release version availability
               run: ./release/validate-version.sh

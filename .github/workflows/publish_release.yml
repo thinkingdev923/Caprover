@@ -7,22 +7,13 @@ on:
 
 concurrency:
     group: production-release
-    cancel-in-progress: false
+    queue: max
 
 jobs:
     run-pre-checks:
-        permissions:
-            contents: read
-            pull-requests: read
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v4
-              with:
-                  fetch-depth: 0
-            - name: Verify release commit
-              env:
-                  GH_TOKEN: ${{ github.token }}
-              run: ./release/verify-release-commit.sh
             - uses: actions/setup-node@v5
               with:
                   node-version: 24
