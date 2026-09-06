@@ -39,7 +39,8 @@ if [ "$TITLE_VERSION" != "$CAPROVER_VERSION" ]; then
     exit 1
 fi
 
-if ! grep --extended-regexp --quiet "^## \[$CAPROVER_VERSION\]( |$)" CHANGELOG.md; then
+ESCAPED_CAPROVER_VERSION="${CAPROVER_VERSION//./\\.}"
+if ! grep --extended-regexp --quiet "^## \[$ESCAPED_CAPROVER_VERSION\]( |$)" CHANGELOG.md; then
     echo "CHANGELOG.md is missing the heading ## [$CAPROVER_VERSION]." >&2
     exit 1
 fi

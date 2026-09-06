@@ -17,8 +17,8 @@ EXISTING_PR_URL="$(
         --base master \
         --head release \
         --state open \
-        --json url \
-        --jq '.[0].url // empty'
+        --json url,isCrossRepository \
+        --jq 'map(select(.isCrossRepository == false)) | .[0].url // empty'
 )"
 
 if [ -n "$EXISTING_PR_URL" ]; then

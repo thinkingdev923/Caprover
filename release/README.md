@@ -12,7 +12,7 @@ Merging into `master` never publishes a production image.
    `release/release.conf`.
 4. Add a matching `## [X.Y.Z]` section to `CHANGELOG.md`.
 5. Open `Release vX.Y.Z` targeting `release`.
-6. Merge the PR after its checks pass.
+6. Use a regular merge commit after the PR checks pass.
 
 The resulting push to `release` publishes the production image and creates the
 draft GitHub release. After publication succeeds, automation opens a
@@ -27,7 +27,7 @@ created. Later commits to `master` are left for the next release.
 2. Apply the fix.
 3. Update `release/release.conf` and `CHANGELOG.md` as described above.
 4. Open `Hotfix vX.Y.Z` targeting `release`.
-5. Merge the PR after its checks pass.
+5. Use a regular merge commit after the PR checks pass.
 
 This publishes the previous production code plus the hotfix, without including
 unreleased work from `master`. The automated backmerge carries the fix and
