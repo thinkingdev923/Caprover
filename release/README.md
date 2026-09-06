@@ -75,4 +75,8 @@ attempt, stop and investigate rather than moving or overwriting the versioned
 tag.
 
 The scripts in this directory contain the release logic. The workflows under
-`.github/workflows` provide triggers, permissions, and runner setup.
+`.github/workflows` provide triggers, permissions, and runner setup. Frontend
+dependencies are built in a separate job without registry credentials. The
+publishing job configures the pinned multi-platform emulator, logs in to Docker
+Hub, revalidates the release version, and immediately builds and pushes the
+image.

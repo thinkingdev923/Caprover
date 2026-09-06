@@ -5,12 +5,15 @@ on:
         branches:
             - master
 
+permissions:
+    contents: read
+
 jobs:
     run-pre-checks:
         runs-on: ubuntu-latest
         steps:
-            - uses: actions/checkout@v3
-            - uses: actions/setup-node@v5
+            - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+            - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
               with:
                   node-version: 24
             - run: |
@@ -20,15 +23,36 @@ jobs:
                   npm run lint
                   npm run formatter
                   npm run test
-    build-publish-docker-hub:
+    prepare-frontend:
         needs: run-pre-checks
         runs-on: ubuntu-latest
         steps:
-            - uses: azure/docker-login@v1
+            - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+            - name: Build edge frontend
+              shell: bash
+              run: ./release/build-and-push.sh edge frontend
+            - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+              with:
+                  name: edge-frontend
+                  path: dist-frontend
+                  if-no-files-found: error
+                  retention-days: 1
+    build-publish-docker-hub:
+        needs: prepare-frontend
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+            - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+              with:
+                  name: edge-frontend
+                  path: dist-frontend
+            - name: Prepare multi-platform builder
+              shell: bash
+              run: ./release/build-and-push.sh edge docker-setup
+            - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
               with:
                   username: ${{ secrets.REGISTRY_USERNAME }}
                   password: ${{ secrets.REGISTRY_PASSWORD }}
-            - uses: actions/checkout@v1
             - name: Build and Push Edge to DockerHub
               shell: bash
-              run: ./release/build-and-push.sh edge
+              run: ./release/build-and-push.sh edge publish
