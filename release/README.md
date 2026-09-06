@@ -36,13 +36,40 @@ release metadata into future releases.
 ## Required repository settings
 
 Protect `release` from direct pushes and require pull requests, approvals, and
-the release validation checks. Allow GitHub Actions to create and approve pull
-requests so the publishing workflow can open and auto-merge backmerge PRs.
+the `build`, `check-code-formatting`, `run-lint`, and `validate-release-pr`
+checks. Configure the `master` rules to require `build`,
+`check-code-formatting`, and `run-lint` for the generated backmerge. Allow
+GitHub Actions to create and approve pull requests so the publishing workflow
+can open and auto-merge backmerge PRs.
 
 GitHub does not start `pull_request` workflows for a PR created with the
 built-in `GITHUB_TOKEN`. The backmerge script explicitly dispatches the build,
 format, and lint workflows against the `release` commit before enabling
 auto-merge. Repository rules remain responsible for waiting for those checks.
+
+## Recovering a partial release
+
+If the image build completed and a later draft-release or backmerge job failed,
+use **Re-run failed jobs** on the existing workflow run. This preserves the
+successful image job and resumes at the failed stage.
+
+If the versioned Docker image was published but its build job reported failure
+or the entire workflow was restarted, do not rebuild that version. Confirm the
+published manifest digest against the successful `buildx` output, check out the
+exact commit at the tip of `release`, and run the remaining scripts with a
+GitHub token:
+
+```bash
+export GH_TOKEN="TOKEN_WITH_REPOSITORY_WRITE_ACCESS"
+export GITHUB_REPOSITORY=caprover/caprover
+export GITHUB_SHA="$(git rev-parse HEAD)"
+./release/create-draft-release.sh
+./release/create-backmerge-pr.sh
+```
+
+If the published image cannot be confirmed as the output of that release
+attempt, stop and investigate rather than moving or overwriting the versioned
+tag.
 
 The scripts in this directory contain the release logic. The workflows under
 `.github/workflows` provide triggers, permissions, and runner setup.

@@ -53,10 +53,10 @@ fi
 
 case "$RELEASE_TYPE" in
     Release)
-        EXPECTED_PREFIX="release/"
+        EXPECTED_REF="release/$CAPROVER_VERSION"
         ;;
     Hotfix)
-        EXPECTED_PREFIX="hotfix/"
+        EXPECTED_REF="hotfix/$CAPROVER_VERSION"
 
         if git show-ref --verify --quiet refs/remotes/origin/master; then
             while read -r candidate_commit; do
@@ -72,8 +72,8 @@ case "$RELEASE_TYPE" in
         ;;
 esac
 
-if [[ "$PR_HEAD_REF" != "$EXPECTED_PREFIX"* ]]; then
-    echo "$RELEASE_TYPE PR branches must start with $EXPECTED_PREFIX." >&2
+if [ "$PR_HEAD_REF" != "$EXPECTED_REF" ]; then
+    echo "$RELEASE_TYPE PR branch must be named $EXPECTED_REF." >&2
     exit 1
 fi
 

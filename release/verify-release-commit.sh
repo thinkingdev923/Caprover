@@ -10,7 +10,11 @@ fi
 
 MATCHING_PRS=()
 
-for attempt in 1 2 3; do
+for retry_delay in 0 2 4 8 16; do
+    if [ "$retry_delay" -gt 0 ]; then
+        sleep "$retry_delay"
+    fi
+
     mapfile -t MATCHING_PRS < <(
         gh api \
             -H "Accept: application/vnd.github+json" \
@@ -20,10 +24,6 @@ for attempt in 1 2 3; do
 
     if [ "${#MATCHING_PRS[@]}" -gt 0 ]; then
         break
-    fi
-
-    if [ "$attempt" -lt 3 ]; then
-        sleep 2
     fi
 done
 
