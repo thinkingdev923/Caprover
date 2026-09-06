@@ -10,9 +10,11 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "$SCRIPT_DIR/release.conf"
 
 CHANNEL="${1:-}"
+PHASE="${2:-}"
 
-if [ "$#" -ne 1 ] || { [ "$CHANNEL" != "edge" ] && [ "$CHANNEL" != "release" ]; }; then
-    echo "Usage: $0 <edge|release>"
+if [ "$#" -ne 2 ] || { [ "$CHANNEL" != "edge" ] && [ "$CHANNEL" != "release" ]; } || \
+    { [ "$PHASE" != "frontend" ] && [ "$PHASE" != "docker-setup" ] && [ "$PHASE" != "publish" ]; }; then
+    echo "Usage: $0 <edge|release> <frontend|docker-setup|publish>"
     exit 1
 fi
 
@@ -51,38 +53,49 @@ if [ "$BRANCH" != "$EXPECTED_BRANCH" ]; then
     exit 1
 fi
 
-sudo apt-get update
-sudo apt-get install -y qemu-user-static
+if [ "$PHASE" = "frontend" ]; then
+    if [ "$CHANNEL" = "release" ]; then
+        ./release/validate-version.sh
+    fi
+
+    ORIG_DIR=$(pwd)
+    FRONTEND_DIR=/home/runner/app-frontend
+
+    curl -Iv https://registry.yarnpkg.com/
+    mkdir -p "$FRONTEND_DIR"
+    git clone "$FRONTEND_REPOSITORY" "$FRONTEND_DIR/caprover-frontend"
+    cd "$FRONTEND_DIR/caprover-frontend"
+    if [ -n "$FRONTEND_COMMIT_HASH" ]; then
+        git reset --hard "$FRONTEND_COMMIT_HASH"
+    fi
+    git log --max-count=1
+    yarn install --no-cache --frozen-lockfile --network-timeout 600000
+    echo "Installation finished"
+    yarn run build
+    echo "Building finished"
+    cd "$ORIG_DIR"
+    mv "$FRONTEND_DIR/caprover-frontend/build" ./dist-frontend
+    exit 0
+fi
+
+if [ "$PHASE" = "docker-setup" ]; then
+    docker run --rm --privileged \
+        tonistiigi/binfmt@sha256:400a4873b838d1b89194d982c45e5fb3cda4593fbfd7e08a02e76b03b21166f0 \
+        --install all
+    docker buildx ls
+    docker buildx rm mybuilder || echo "mybuilder not found"
+    docker buildx create --name mybuilder
+    docker buildx use mybuilder
+    exit 0
+fi
 
 if [ "$CHANNEL" = "release" ]; then
     ./release/validate-version.sh
 fi
 
-## Building frontend app
-ORIG_DIR=$(pwd)
-FRONTEND_DIR=/home/runner/app-frontend
-
-curl -Iv https://registry.yarnpkg.com/
-mkdir -p "$FRONTEND_DIR"
-git clone "$FRONTEND_REPOSITORY" "$FRONTEND_DIR/caprover-frontend"
-cd "$FRONTEND_DIR/caprover-frontend"
-if [ -n "$FRONTEND_COMMIT_HASH" ]; then
-    git reset --hard "$FRONTEND_COMMIT_HASH"
+if [ ! -d ./dist-frontend ]; then
+    echo "dist-frontend not found!"
+    exit 1
 fi
-git log --max-count=1
-yarn install --no-cache --frozen-lockfile --network-timeout 600000
-echo "Installation finished"
-yarn run build
-echo "Building finished"
-cd "$ORIG_DIR"
-mv "$FRONTEND_DIR/caprover-frontend/build" ./dist-frontend
-
-# docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
-docker run --rm --privileged tonistiigi/binfmt --install all
-# export DOCKER_CLI_EXPERIMENTAL=enabled
-docker buildx ls
-docker buildx rm mybuilder || echo "mybuilder not found"
-docker buildx create --name mybuilder
-docker buildx use mybuilder
 
 docker buildx build --platform linux/amd64,linux/arm64 -t "$IMAGE_NAME:$CAPROVER_VERSION" -t "$IMAGE_NAME:latest" -f "$DOCKERFILE" --push .
