@@ -6,6 +6,9 @@ set -e
 # Print all commands
 set -x
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+. "$SCRIPT_DIR/release.conf"
+
 CHANNEL="${1:-}"
 
 if [ "$#" -ne 1 ] || { [ "$CHANNEL" != "edge" ] && [ "$CHANNEL" != "release" ]; }; then
@@ -22,15 +25,15 @@ fi
 
 if [ "$CHANNEL" = "edge" ]; then
     EXPECTED_BRANCH=master
-    CAPROVER_VERSION=0.0.1
-    IMAGE_NAME=caprover/caprover-edge
+    CAPROVER_VERSION="$EDGE_VERSION"
+    IMAGE_NAME="$EDGE_IMAGE_NAME"
     DOCKERFILE=release/dockerfile.edge
-    FRONTEND_COMMIT_HASH=''
+    FRONTEND_COMMIT_HASH="$EDGE_FRONTEND_COMMIT"
 else
     EXPECTED_BRANCH=release
-    IMAGE_NAME=caprover/caprover
+    IMAGE_NAME="$CAPROVER_IMAGE_NAME"
     DOCKERFILE=release/dockerfile.release
-    FRONTEND_COMMIT_HASH=c9005cc2e5ac1b6816cb983d2d3732338c546a94
+    FRONTEND_COMMIT_HASH="$RELEASE_FRONTEND_COMMIT"
 fi
 
 # Ensure publishing only happens from the expected GitHub Actions branch.
@@ -49,10 +52,10 @@ if [ "$BRANCH" != "$EXPECTED_BRANCH" ]; then
 fi
 
 sudo apt-get update
-sudo apt-get install -y jq qemu-user-static
+sudo apt-get install -y qemu-user-static
 
 if [ "$CHANNEL" = "release" ]; then
-    CAPROVER_VERSION="$(./release/validate-version.sh "$IMAGE_NAME")"
+    ./release/validate-version.sh
 fi
 
 ## Building frontend app
@@ -61,7 +64,7 @@ FRONTEND_DIR=/home/runner/app-frontend
 
 curl -Iv https://registry.yarnpkg.com/
 mkdir -p "$FRONTEND_DIR"
-git clone https://github.com/githubsaturn/caprover-frontend.git "$FRONTEND_DIR/caprover-frontend"
+git clone "$FRONTEND_REPOSITORY" "$FRONTEND_DIR/caprover-frontend"
 cd "$FRONTEND_DIR/caprover-frontend"
 if [ -n "$FRONTEND_COMMIT_HASH" ]; then
     git reset --hard "$FRONTEND_COMMIT_HASH"

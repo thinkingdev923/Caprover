@@ -10,7 +10,8 @@ RUN npm ci && \
      npm run build && \
      npm ci --omit=dev && \
      npm cache clean --force && \
-     mv ./edge-override.json ./config-override.json
+     . ./release/release.conf && \
+     printf '{"publishedNameOnDockerHub":"%s","version":"%s"}\n' "$EDGE_IMAGE_NAME" "$EDGE_VERSION" > ./config-override.json
 
 # Final stage uses the target platform's Node.js runtime
 FROM node:24-alpine
