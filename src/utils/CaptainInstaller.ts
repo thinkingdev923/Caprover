@@ -3,8 +3,8 @@ import { IAppEnvVar, IAppPort } from '../models/AppDefinition'
 import BackupManager from '../user/system/BackupManager'
 import CaptainConstants from './CaptainConstants'
 import EnvVar from './EnvVars'
+import { getText } from './HttpUtils'
 import http = require('http')
-import request = require('request')
 
 // internal IP returns Public IP if the machine is not behind a NAT
 // No need to directly use Public IP.
@@ -246,9 +246,8 @@ function checkPortOrThrow(ipAddr: string, portToTest: number) {
             reject(new Error(`Port timed out: ${portToTest}`))
         }, 5000)
 
-        request(
-            `http://${ipAddr}:${portToTest}`,
-            function (error, response, body) {
+        getText(`http://${ipAddr}:${portToTest}`)
+            .then(function (body) {
                 if (finished) {
                     return
                 }
@@ -261,8 +260,16 @@ function checkPortOrThrow(ipAddr: string, portToTest: number) {
                     printError()
                     reject(new Error(`Port seems to be closed: ${portToTest}`))
                 }
-            }
-        )
+            })
+            .catch(function () {
+                if (finished) {
+                    return
+                }
+
+                finished = true
+                printError()
+                reject(new Error(`Port seems to be closed: ${portToTest}`))
+            })
     })
 }
 

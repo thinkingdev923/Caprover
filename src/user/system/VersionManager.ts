@@ -1,7 +1,7 @@
-import request = require('request')
 import axios from 'axios'
 import DockerApi from '../../docker/DockerApi'
 import CaptainConstants from '../../utils/CaptainConstants'
+import { getText } from '../../utils/HttpUtils'
 import Logger from '../../utils/Logger'
 import DockerRegistryHelper from '../DockerRegistryHelper'
 
@@ -78,18 +78,14 @@ class VersionManager {
         const url = `https://hub.docker.com/v2/repositories/${CaptainConstants.configs.publishedNameOnDockerHub}/tags`
 
         return new Promise<string[]>(function (resolve, reject) {
-            request(
-                url,
-
-                function (error, response, body) {
+            getText(url)
+                .then(function (body) {
                     if (CaptainConstants.isDebug) {
                         resolve(['v0.0.1'])
                         return
                     }
 
-                    if (error) {
-                        reject(error)
-                    } else if (!body || !JSON.parse(body).results) {
+                    if (!body || !JSON.parse(body).results) {
                         reject(
                             new Error(
                                 'Received empty body or no result for version list on docker hub.'
@@ -103,8 +99,8 @@ class VersionManager {
                         }
                         resolve(tags)
                     }
-                }
-            )
+                })
+                .catch(reject)
         }).then(function (tagList) {
             const currentVersion = CaptainConstants.configs.version.split('.')
             let latestVersion = CaptainConstants.configs.version.split('.')
