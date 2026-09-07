@@ -1,7 +1,6 @@
 import SshClientImport = require('ssh2')
 import { exec } from 'child_process'
 import * as fs from 'fs-extra'
-import moment from 'moment'
 import * as path from 'path'
 import * as tar from 'tar'
 import ApiStatusCodes from '../../api/ApiStatusCodes'
@@ -12,6 +11,7 @@ import { BackupMeta, RestoringInfo } from '../../models/BackupMeta'
 import { IHashMapGeneric } from '../../models/ICacheGeneric'
 import { ServerDockerInfo } from '../../models/ServerDockerInfo'
 import CaptainConstants from '../../utils/CaptainConstants'
+import { formatBackupDate } from '../../utils/DateUtils'
 import Logger from '../../utils/Logger'
 import Utils from '../../utils/Utils'
 import Authenticator from '../Authenticator'
@@ -738,12 +738,12 @@ export default class BackupManager {
                         // https://github.com/caprover/caprover/issues/1257
                         const hostSegment = hostname ? `-host-${hostname}` : ''
 
-                        const now = moment()
+                        const now = new Date()
                         const newName = `${
                             CaptainConstants.captainDownloadsDirectory
-                        }/${namespace}/caprover-backup-${`${now.format(
-                            'YYYY_MM_DD-HH_mm_ss'
-                        )}-${now.valueOf()}`}${`-ip-${mainIP}${hostSegment}.tar`}`
+                        }/${namespace}/caprover-backup-${`${formatBackupDate(
+                            now
+                        )}-${now.getTime()}`}${`-ip-${mainIP}${hostSegment}.tar`}`
                         fs.moveSync(tarFilePath, newName)
 
                         setTimeout(
