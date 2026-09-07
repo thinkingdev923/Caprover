@@ -33,7 +33,7 @@
         "morgan": "^1.10.0",
         "multer": "^2.0.1",
         "on-finished": "^2.4.1",
-        "public-ip": "^7.0.1",
+        "public-ip": "^8.0.0",
         "require-from-string": "^2.0.2",
         "serve-favicon": "~2.5.1",
         "shell-quote": "^1.8.3",
