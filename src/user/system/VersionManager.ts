@@ -1,7 +1,7 @@
-import request = require('request')
 import axios from 'axios'
 import DockerApi from '../../docker/DockerApi'
 import CaptainConstants from '../../utils/CaptainConstants'
+import { getText } from '../../utils/HttpUtils'
 import Logger from '../../utils/Logger'
 import DockerRegistryHelper from '../DockerRegistryHelper'
 
@@ -77,35 +77,34 @@ class VersionManager {
 
         const url = `https://hub.docker.com/v2/repositories/${CaptainConstants.configs.publishedNameOnDockerHub}/tags`
 
-        return new Promise<string[]>(function (resolve, reject) {
-            request(
-                url,
+        const tagListPromise = CaptainConstants.isDebug
+            ? Promise.resolve(['v0.0.1'])
+            : getText(url).then(function (body) {
+                  let response: { results?: Array<{ name?: unknown }> } | null
 
-                function (error, response, body) {
-                    if (CaptainConstants.isDebug) {
-                        resolve(['v0.0.1'])
-                        return
-                    }
+                  try {
+                      response = JSON.parse(body)
+                  } catch (error) {
+                      throw new Error(
+                          'Received invalid JSON for version list from Docker Hub.',
+                          { cause: error }
+                      )
+                  }
 
-                    if (error) {
-                        reject(error)
-                    } else if (!body || !JSON.parse(body).results) {
-                        reject(
-                            new Error(
-                                'Received empty body or no result for version list on docker hub.'
-                            )
-                        )
-                    } else {
-                        const results = JSON.parse(body).results
-                        const tags = []
-                        for (let idx = 0; idx < results.length; idx++) {
-                            tags.push(results[idx].name)
-                        }
-                        resolve(tags)
-                    }
-                }
-            )
-        }).then(function (tagList) {
+                  if (!response || !Array.isArray(response.results)) {
+                      throw new Error(
+                          'Received empty body or no result for version list from Docker Hub.'
+                      )
+                  }
+
+                  return response.results
+                      .map((result) => result.name)
+                      .filter(
+                          (name): name is string => typeof name === 'string'
+                      )
+              })
+
+        return tagListPromise.then(function (tagList) {
             const currentVersion = CaptainConstants.configs.version.split('.')
             let latestVersion = CaptainConstants.configs.version.split('.')
 
@@ -118,25 +117,22 @@ class VersionManager {
                     continue
                 }
 
-                if (Number(tag[0]) > Number(currentVersion[0])) {
+                if (Number(tag[0]) > Number(latestVersion[0])) {
                     canUpdate = true
                     latestVersion = tag
-                    break
                 } else if (
-                    Number(tag[0]) === Number(currentVersion[0]) &&
-                    Number(tag[1]) > Number(currentVersion[1])
+                    Number(tag[0]) === Number(latestVersion[0]) &&
+                    Number(tag[1]) > Number(latestVersion[1])
                 ) {
                     canUpdate = true
                     latestVersion = tag
-                    break
                 } else if (
-                    Number(tag[0]) === Number(currentVersion[0]) &&
-                    Number(tag[1]) === Number(currentVersion[1]) &&
-                    Number(tag[2]) > Number(currentVersion[2])
+                    Number(tag[0]) === Number(latestVersion[0]) &&
+                    Number(tag[1]) === Number(latestVersion[1]) &&
+                    Number(tag[2]) > Number(latestVersion[2])
                 ) {
                     canUpdate = true
                     latestVersion = tag
-                    break
                 }
             }
 

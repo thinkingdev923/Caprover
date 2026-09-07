@@ -7,6 +7,7 @@ import { GoAccessInfo } from '../../models/GoAccessInfo'
 import { IRegistryInfo, IRegistryTypes } from '../../models/IRegistryInfo'
 import { NetDataInfo } from '../../models/NetDataInfo'
 import CaptainConstants from '../../utils/CaptainConstants'
+import { getText } from '../../utils/HttpUtils'
 import Logger from '../../utils/Logger'
 import Utils from '../../utils/Utils'
 import Authenticator from '../Authenticator'
@@ -24,7 +25,6 @@ import DiskCleanupManager from './DiskCleanupManager'
 import DomainResolveChecker from './DomainResolveChecker'
 import LoadBalancerManager from './LoadBalancerManager'
 import SelfHostedDockerRegistry from './SelfHostedDockerRegistry'
-import request = require('request')
 import fs = require('fs-extra')
 
 const DEBUG_SALT = 'THIS IS NOT A REAL CERTIFICATE'
@@ -339,22 +339,26 @@ class CaptainManager {
 
             const url = `http://${captainPublicDomain}${CaptainConstants.healthCheckEndPoint}`
 
-            request(
-                url,
-
-                function (error, response, body) {
+            getText(url)
+                .then(function (body) {
                     if (callbackCalled) {
                         return
                     }
                     callbackCalled = true
 
-                    if (error || !body || body !== self.getHealthCheckUuid()) {
+                    if (!body || body !== self.getHealthCheckUuid()) {
                         callback(false)
                     } else {
                         callback(true)
                     }
-                }
-            )
+                })
+                .catch(function () {
+                    if (callbackCalled) {
+                        return
+                    }
+                    callbackCalled = true
+                    callback(false)
+                })
         }
 
         function checkNginxHealth(callback: ISuccessCallback) {
