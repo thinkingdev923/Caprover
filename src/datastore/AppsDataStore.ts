@@ -217,7 +217,7 @@ class AppsDataStore {
             .then(function () {
                 let passwordToBeEncrypted = ''
                 let sshKeyToBeEncrypted = ''
-                let pushWebhook = app.appPushWebhook
+                const pushWebhook = app.appPushWebhook
                 if (
                     pushWebhook &&
                     pushWebhook.pushWebhookToken &&
@@ -230,9 +230,6 @@ class AppsDataStore {
                     sshKeyToBeEncrypted = pushWebhook.repoInfo.sshKey || ''
                     pushWebhook.repoInfo.password = ''
                     pushWebhook.repoInfo.sshKey = ''
-                } else {
-                    // some required data is missing. We drop the push data
-                    pushWebhook = undefined
                 }
 
                 const appToSave: IAppDefSaved = <IAppDefSaved>app
